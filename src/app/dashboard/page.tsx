@@ -88,7 +88,7 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {applications.map((app) => (
-                <div key={app._id.toString()} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                <div key={(app._id as any).toString()} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                       <CreditCard size={14} className="text-blue-600" />

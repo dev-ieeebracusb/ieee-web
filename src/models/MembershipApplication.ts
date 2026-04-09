@@ -12,7 +12,6 @@ export interface IChapterSelection {
 }
 
 export interface IMembershipApplication extends Document {
-  _id: string;
   userId: string;
   membershipType: MembershipType;
   memberType?: MemberType; // for extend

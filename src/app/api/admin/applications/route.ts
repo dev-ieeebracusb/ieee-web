@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     // Merge user info
     const userIds = [...new Set(applications.map((a) => a.userId))];
     const users = await User.find({ _id: { $in: userIds } }).lean();
-    const userMap = Object.fromEntries(users.map((u) => [u._id.toString(), u]));
+    const userMap = Object.fromEntries(users.map((u) => [(u as { _id: { toString(): string } })._id.toString(), u]));
 
     const merged = applications.map((app) => ({
       ...app,
