@@ -1,0 +1,58 @@
+{
+  "chapters": [
+    {
+      "id": "computer_society",
+      "name": "Computer Society",
+      "shortName": "CS",
+      "color": "#2563eb",
+      "description": "IEEE Computer Society Chapter",
+      "prices": {
+        "new": 1500,
+        "renew": 1200,
+        "extend": 800
+      }
+    },
+    {
+      "id": "ras",
+      "name": "Robotics and Automation Society",
+      "shortName": "RAS",
+      "color": "#16a34a",
+      "description": "IEEE RAS Chapter",
+      "prices": {
+        "new": 1500,
+        "renew": 1200,
+        "extend": 800
+      }
+    },
+    {
+      "id": "eds",
+      "name": "Electron Devices Society",
+      "shortName": "EDS",
+      "color": "#9333ea",
+      "description": "IEEE EDS Chapter",
+      "prices": {
+        "new": 1500,
+        "renew": 1200,
+        "extend": 800
+      }
+    }
+  ],
+  "ieeeMembershipFee": {
+    "new": 3000,
+    "renew": 2500
+  },
+  "payment": {
+    "bkash": {
+      "number": "01XXXXXXXXX",
+      "type": "Personal",
+      "reference": "Your BRACU Student ID"
+    },
+    "bank": {
+      "bankName": "Dutch-Bangla Bank Limited",
+      "accountName": "IEEE BRACU Student Branch",
+      "accountNumber": "XXXX-XXXX-XXXX",
+      "branchName": "BRAC University Branch",
+      "routingNumber": "XXXXXXXX"
+    }
+  }
+}
