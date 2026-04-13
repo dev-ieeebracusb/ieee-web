@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { signUp } from "@/lib/auth-client";
-import { Eye, EyeOff, Loader2, Upload, X, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Upload, X, CheckCircle2, ShieldCheck, ArrowLeft } from "lucide-react";
 import { DEPARTMENTS } from "@/lib/utils";
 
 const schema = z.object({
@@ -37,27 +37,20 @@ export default function RegisterPage() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [idCardUrl, setIdCardUrl] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ 
+    resolver: zodResolver(schema) 
+  });
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIdCardFile(file);
-
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = (ev) => setIdCardPreview(ev.target?.result as string);
       reader.readAsDataURL(file);
-    } else {
-      setIdCardPreview(null);
-    }
+    } else { setIdCardPreview(null); }
 
-    // Upload immediately
     setUploadingFile(true);
     try {
       const fd = new FormData();
@@ -66,22 +59,15 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error("Upload failed");
       const { url } = await res.json();
       setIdCardUrl(url);
-      toast.success("ID card uploaded successfully");
+      toast.success("ID card uploaded");
     } catch {
-      toast.error("Failed to upload ID card. Please try again.");
+      toast.error("Upload failed");
       setIdCardFile(null);
-      setIdCardPreview(null);
-    } finally {
-      setUploadingFile(false);
-    }
+    } finally { setUploadingFile(false); }
   };
 
   const onSubmit = async (data: FormData) => {
-    if (!idCardUrl) {
-      toast.error("Please upload your BRACU ID card or Payslip");
-      return;
-    }
-
+    if (!idCardUrl) return toast.error("Please upload your ID card");
     setLoading(true);
     try {
       const result = await signUp.email({
@@ -98,177 +84,136 @@ export default function RegisterPage() {
         facebookId: data.facebookId ?? "",
       });
 
-      if (result.error) {
-        toast.error(result.error.message ?? "Registration failed");
-      } else {
-        toast.success("Account created successfully! Welcome to IEEE BRACU.");
+      if (result.error) toast.error(result.error.message);
+      else {
+        toast.success("Welcome to IEEE BRACU!");
         router.push("/dashboard");
         router.refresh();
       }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error("Something went wrong"); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="card">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Create your account</h2>
-      <p className="text-gray-500 text-sm mb-6">Join IEEE BRACU Student Branch</p>
+    <div className="flex min-h-screen bg-white">
+            {/* Left Column: Branding (Sticky) */}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Full Name */}
-        <div>
-          <label className="label">Full Name *</label>
-          <input {...register("fullName")} className="input" placeholder="John Doe" />
-          {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
+      <div className="hidden lg:block lg:w-2/5 xl:w-1/2 relative bg-blue-600">
+        <img src="https://images.unsplash.com/photo-1523240715639-93f8fd0a9840?auto=format&fit=crop&q=80&w=1500" className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-700/90 to-transparent" />
+        <div className="relative h-full flex flex-col justify-center px-16 text-white">
+          <ShieldCheck size={48} className="mb-6 opacity-80" />
+          <h2 className="text-4xl font-bold leading-tight mb-4">Empowering <br /> Future Engineers.</h2>
+          <p className="text-blue-100 text-lg max-w-md">By joining IEEE BRACU, you gain access to a network of professionals, technical resources, and hands-on workshops that bridge the gap between academia and industry.</p>
         </div>
+      </div>
+      {/* Right Column: Form (Scrollable) */}
+      <div className="flex flex-col w-full lg:w-3/5 xl:w-1/2 overflow-y-auto">
+        <div className="max-w-[600px] mx-auto w-full px-8 py-12 md:px-16">
+          
+          <Link href="/auth/login" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 mb-8 transition-colors">
+            <ArrowLeft size={16} /> Back to login
+          </Link>
 
-        {/* Email */}
-        <div>
-          <label className="label">BRACU Email Address *</label>
-          <input {...register("email")} type="email" className="input" placeholder="you@g.bracu.ac.bd" />
-          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
-        </div>
-
-        {/* IEEE Email */}
-        <div>
-          <label className="label">IEEE Account Email <span className="text-gray-400 font-normal">(optional)</span></label>
-          <input {...register("ieeeEmail")} type="email" className="input" placeholder="your-ieee@ieee.org" />
-          {errors.ieeeEmail && <p className="text-red-500 text-xs mt-1">{errors.ieeeEmail.message}</p>}
-        </div>
-
-        {/* Password */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">Password *</label>
-            <div className="relative">
-              <input
-                {...register("password")}
-                type={showPassword ? "text" : "password"}
-                className="input pr-9"
-                placeholder="Min 8 chars"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-              >
-                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+          <div className="mb-10">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Create your account</h1>
+            <p className="text-gray-500 mt-2 text-sm">Join the world&apos;s largest technical professional organization.</p>
           </div>
-          <div>
-            <label className="label">Confirm Password *</label>
-            <input
-              {...register("confirmPassword")}
-              type="password"
-              className="input"
-              placeholder="Repeat password"
-            />
-            {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>}
-          </div>
-        </div>
 
-        {/* Department */}
-        <div>
-          <label className="label">Department *</label>
-          <select {...register("department")} className="input">
-            <option value="">Select your department</option>
-            {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-          {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>}
-        </div>
-
-        {/* Student ID */}
-        <div>
-          <label className="label">BRACU Student ID *</label>
-          <input {...register("studentId")} className="input" placeholder="e.g. 21301234" />
-          {errors.studentId && <p className="text-red-500 text-xs mt-1">{errors.studentId.message}</p>}
-        </div>
-
-        {/* ID Card Upload */}
-        <div>
-          <label className="label">
-            BRACU ID Card / Payslip *{" "}
-            <span className="text-gray-400 font-normal text-xs">(JPG, PNG, PDF — max 5MB)</span>
-          </label>
-          {idCardUrl ? (
-            <div className="border-2 border-green-200 bg-green-50 rounded-xl p-3 flex items-center gap-3">
-              {idCardPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={idCardPreview} alt="ID Card" className="w-12 h-12 object-cover rounded-lg" />
-              ) : (
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <CheckCircle2 size={20} className="text-green-600" />
-                </div>
-              )}
-              <div className="flex-1">
-                <p className="text-sm font-medium text-green-700">{idCardFile?.name}</p>
-                <p className="text-xs text-green-600">Uploaded successfully</p>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Full Name */}
+              <div className="md:col-span-2">
+                <label className="text-sm font-semibold text-gray-700">Full Name *</label>
+                <input {...register("fullName")} className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none" placeholder="John Doe" />
+                {errors.fullName && <p className="text-red-500 text-[10px] mt-1">{errors.fullName.message}</p>}
               </div>
-              <button
-                type="button"
-                onClick={() => { setIdCardFile(null); setIdCardPreview(null); setIdCardUrl(null); }}
-                className="text-gray-400 hover:text-red-500"
-              >
-                <X size={16} />
-              </button>
+
+              {/* Emails */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700">BRACU Email *</label>
+                <input {...register("email")} type="email" className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none" placeholder="you@g.bracu.ac.bd" />
+                {errors.email && <p className="text-red-500 text-[10px] mt-1">{errors.email.message}</p>}
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">IEEE Email (Optional)</label>
+                <input {...register("ieeeEmail")} type="email" className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none" placeholder="name@ieee.org" />
+              </div>
+
+              {/* Passwords */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Password *</label>
+                <div className="relative mt-2">
+                  <input {...register("password")} type={showPassword ? "text" : "password"} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="••••••••" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                </div>
+                {errors.password && <p className="text-red-500 text-[10px] mt-1">{errors.password.message}</p>}
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Confirm Password *</label>
+                <input {...register("confirmPassword")} type="password" className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="••••••••" />
+              </div>
+
+              {/* Academic */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Department *</label>
+                <select {...register("department")} className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white">
+                  <option value="">Select Dept</option>
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Student ID *</label>
+                <input {...register("studentId")} className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="2130XXXX" />
+              </div>
             </div>
-          ) : (
-            <label className="border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-primary-400 hover:bg-blue-50 transition-all">
-              {uploadingFile ? (
-                <Loader2 size={24} className="text-primary-500 animate-spin" />
-              ) : (
-                <Upload size={24} className="text-gray-400" />
-              )}
-              <span className="text-sm text-gray-500">
-                {uploadingFile ? "Uploading..." : "Click to upload your ID card or Payslip"}
-              </span>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={uploadingFile}
-              />
-            </label>
-          )}
+
+            {/* ID Card Upload */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700">BRACU ID Card / Payslip *</label>
+              <div className="mt-2">
+                {idCardUrl ? (
+                  <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 size={20} className="text-green-600" />
+                      <span className="text-xs font-medium text-green-700 truncate max-w-[200px]">{idCardFile?.name}</span>
+                    </div>
+                    <button type="button" onClick={() => setIdCardUrl(null)} className="text-gray-400 hover:text-red-500"><X size={16}/></button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all">
+                    {uploadingFile ? <Loader2 className="animate-spin text-blue-600" /> : <Upload className="text-gray-400 mb-2" />}
+                    <span className="text-xs text-gray-500">{uploadingFile ? "Uploading..." : "Upload JPG or PDF"}</span>
+                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileSelect} disabled={uploadingFile} />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Contact Number *</label>
+                <input {...register("contactNumber")} className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="017XXXXXXXX" />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-700">Facebook URL</label>
+                <input {...register("facebookId")} className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="facebook.com/..." />
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading || uploadingFile} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2">
+              {(loading || uploadingFile) && <Loader2 size={18} className="animate-spin" />}
+              Create Account
+            </button>
+          </form>
+
+          <p className="text-center mt-8 text-sm text-gray-500 pb-10">
+            Already registered? <Link href="/auth/login" className="text-blue-600 font-bold hover:underline">Sign in</Link>
+          </p>
         </div>
+      </div>
 
-        {/* Contact + Facebook */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">Contact Number *</label>
-            <input {...register("contactNumber")} className="input" placeholder="01XXXXXXXXX" />
-            {errors.contactNumber && <p className="text-red-500 text-xs mt-1">{errors.contactNumber.message}</p>}
-          </div>
-          <div>
-            <label className="label">Facebook Profile URL <span className="text-gray-400 font-normal">(optional)</span></label>
-            <input {...register("facebookId")} className="input" placeholder="facebook.com/you" />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading || uploadingFile}
-          className="btn-primary w-full flex items-center justify-center gap-2 mt-2"
-        >
-          {loading && <Loader2 size={16} className="animate-spin" />}
-          Create Account
-        </button>
-      </form>
-
-      <p className="text-center text-sm text-gray-500 mt-6">
-        Already have an account?{" "}
-        <Link href="/auth/login" className="text-primary-600 font-semibold hover:underline">
-          Sign in
-        </Link>
-      </p>
+      
     </div>
   );
 }

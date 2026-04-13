@@ -12,6 +12,20 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    autoSignIn: false,
+   sendResetPassword: async ({ user, url }) => {
+      const { sendEmail } = await import("@/lib/mailer");
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your password",
+        html: `
+          <p>Hi ${user.name},</p>
+          <p>Click the link below to reset your password:</p>
+          <a href="${url}">Reset Password</a>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        `,
+      });
+    },
   },
 
   user: {
