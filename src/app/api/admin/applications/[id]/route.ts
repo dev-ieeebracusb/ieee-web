@@ -56,20 +56,26 @@ export async function GET(
   try {
     await connectDB();
     const { id } = await params;
-    const application = await MembershipApplication.findById(id).lean();
-    const user = await User.findById(id).lean()
-    if (!application && user!) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    // THE FIX: Tell TypeScript this object will have a userId string
+    const application = await MembershipApplication.findById(id).lean() as { userId: string } & Record<string, any> | null;
+    
+    if (!application) {
+      return NextResponse.json({ error: "Application not found" }, { status: 404 });
     }
+
+    // Now TypeScript knows application.userId is perfectly safe!
+    const user = await User.findById(application.userId).lean();
+
     const mergedData = {
-      ...user,
       ...application,
-      mergedAt: new Date().toISOString(),
+      user: user || null, 
     };
-    return NextResponse.json({ mergedData });
+
+    return NextResponse.json(mergedData);
     
   } catch (error) {
     console.error("Get application error:", error);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch application details" }, { status: 500 });
   }
 }

@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import connectDB from "@/lib/db";
 import { MembershipApplication } from "@/models/MembershipApplication";
-import { User } from "@/models/User"
+import { User } from "@/models/User";
 
 async function requireAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -20,11 +20,40 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const search = searchParams.get("search"); // ADDED: Extract search param
     const page = Number(searchParams.get("page") ?? 1);
     const limit = 20;
 
-    const query: Record<string, unknown> = {};
+    // MODIFIED: Changed from unknown to any to support MongoDB operators like $or
+    const query: Record<string, any> = {}; 
     if (status && status !== "all") query.status = status;
+
+    // ADDED: Search Logic
+    if (search) {
+      // 1. Clean the search term to prevent regex crashes on special characters
+      const cleanSearch = search.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const searchRegex = new RegExp(cleanSearch, "i");
+
+      // 2. Search users by Name, Student ID, or Email
+      const userMatches = await User.find({
+        $or: [
+          { fullName: { $regex: searchRegex } },
+          { studentId: { $regex: searchRegex } },
+          { email: { $regex: searchRegex } },
+        ],
+      })
+      .select("_id")
+      .lean();
+
+      // Convert found User ObjectIds to standard strings
+      const matchedUserIds = userMatches.map((u: any) => u._id.toString());
+
+      // 3. Add to the main application query
+      query.$or = [
+        { transactionId: { $regex: searchRegex } },
+        { userId: { $in: matchedUserIds } },
+      ];
+    }
 
     const [applications, total] = await Promise.all([
       MembershipApplication.find(query)
@@ -41,8 +70,6 @@ export async function GET(req: NextRequest) {
     // 2. Fetch users. Mongoose is smart enough to auto-cast your string IDs 
     // to ObjectIds for the $in query under the hood.
     const users = await User.find({ _id: { $in: userIds } }).lean();
-    
-
 
     // 3. Build the map using .reduce for cleaner TypeScript, 
     // explicitly converting the ObjectId _id to a string to match `userId`

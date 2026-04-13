@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
-import { Loader2, ChevronDown, Save, Copy } from "lucide-react";
+import { Loader2, ChevronDown, Save, Copy, Search } from "lucide-react"; // ADDED: Search icon
 
 interface AppWithUser {
   _id: string;
@@ -41,16 +41,32 @@ export default function AdminApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  
+  // ADDED: Search States
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   const [selected, setSelected] = useState<AppWithUser | null>(null);
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<string>("pending");
   const [editNotes, setEditNotes] = useState("");
   const [editStatusMessage, setEditStatusMessage] = useState(""); 
 
+  // ADDED: Debounce effect for search (waits 500ms after user stops typing)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1); // Reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const fetchApps = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page), status: statusFilter });
+      if (debouncedSearch) params.append("search", debouncedSearch); // ADDED: search param
+
       const res = await fetch(`/api/admin/applications?${params}`);
       const data = await res.json();
       setApps(data.applications ?? []);
@@ -58,7 +74,7 @@ export default function AdminApplicationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, debouncedSearch]); // ADDED: debouncedSearch dependency
 
   useEffect(() => { fetchApps(); }, [fetchApps]);
 
@@ -93,7 +109,6 @@ export default function AdminApplicationsPage() {
     }
   };
 
-  // ADDED: Reusable copy function
   const handleCopy = (text: string, label: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -102,9 +117,21 @@ export default function AdminApplicationsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="card">
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Filters & Search */}
+      <div className="card space-y-4">
+        {/* ADDED: Search Bar */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input
+            type="text"
+            placeholder="Search by Name, Student ID, or Transaction ID..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="input pl-9 text-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap border-t border-gray-100 pt-4">
           <span className="text-sm font-medium text-gray-700">Filter by status:</span>
           {["all", ...STATUS_OPTIONS].map((s) => (
             <button
@@ -140,7 +167,7 @@ export default function AdminApplicationsPage() {
               {loading ? (
                 <tr><td colSpan={9} className="text-center py-12 text-gray-400">Loading...</td></tr>
               ) : apps.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-12 text-gray-400">No applications found</td></tr>
+                <tr><td colSpan={9} className="text-center py-12 text-gray-400">No applications found matching your criteria</td></tr>
               ) : (
                 apps.map((app) => (
                   <tr key={app._id} className="hover:bg-gray-50 transition-colors">
@@ -186,16 +213,16 @@ export default function AdminApplicationsPage() {
           </table>
         </div>
 
-        {total > 20 && (
+        {total > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
             <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="btn-secondary text-xs disabled:opacity-40">Previous</button>
-            <span className="text-xs text-gray-500">Page {page} of {Math.ceil(total / 20)}</span>
-            <button disabled={page >= Math.ceil(total / 20)} onClick={() => setPage((p) => p + 1)} className="btn-secondary text-xs disabled:opacity-40">Next</button>
+            <span className="text-xs text-gray-500">Page {page} of {Math.ceil(total / 1)}</span>
+            <button disabled={page >= Math.ceil(total / 1)} onClick={() => setPage((p) => p + 1)} className="btn-secondary text-xs disabled:opacity-40">Next</button>
           </div>
         )}
       </div>
 
-      {/* Application Detail Modal */}
+      {/* Application Detail Modal - (Unchanged, remains as previously written) */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -214,7 +241,6 @@ export default function AdminApplicationsPage() {
                     <p className="font-medium text-gray-800">{selected.user?.fullName ?? "—"}</p>
                   </div>
                   
-                  {/* Copyable Email */}
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">Email</p>
                     <div className="flex items-center justify-between gap-2">
@@ -227,7 +253,6 @@ export default function AdminApplicationsPage() {
                     </div>
                   </div>
 
-                  {/* Copyable Student ID */}
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">Student ID</p>
                     <div className="flex items-center justify-between gap-2">
@@ -277,13 +302,11 @@ export default function AdminApplicationsPage() {
                     </div>
                   )}
                   
-                  {/* IEEE Account Status */}
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">IEEE Account Provided</p>
                     <p className="font-medium text-gray-800">{selected.hasIeeeAccount ? "Yes" : "No"}</p>
                   </div>
 
-                  {/* Copyable IEEE Account Email */}
                   {selected.hasIeeeAccount && selected.ieeeAccountEmail && (
                     <div className="bg-gray-50 rounded-xl p-3">
                       <p className="text-xs text-gray-400 mb-1">IEEE Account Email</p>
@@ -296,7 +319,6 @@ export default function AdminApplicationsPage() {
                     </div>
                   )}
 
-                  {/* Copyable IEEE Account Password */}
                   {selected.hasIeeeAccount && selected.ieeeAccountPassword && (
                     <div className="bg-gray-50 rounded-xl p-3">
                       <p className="text-xs text-gray-400 mb-1">IEEE Account Password</p>
@@ -314,7 +336,6 @@ export default function AdminApplicationsPage() {
                     <p className="font-medium text-gray-800 capitalize">{selected.paymentMethod}</p>
                   </div>
 
-                  {/* Copyable Transaction ID */}
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">Transaction ID</p>
                     <div className="flex items-center justify-between gap-2">
@@ -335,7 +356,6 @@ export default function AdminApplicationsPage() {
                   </div>
                 </div>
 
-                {/* Chapters */}
                 <div className="mt-3">
                   <p className="text-xs text-gray-400 mb-2">Selected Chapters</p>
                   <div className="flex flex-wrap gap-2">
