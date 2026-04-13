@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
-import { Loader2, ChevronDown, Save } from "lucide-react";
+import { Loader2, ChevronDown, Save, Copy } from "lucide-react";
 
 interface AppWithUser {
   _id: string;
@@ -12,6 +12,7 @@ interface AppWithUser {
   memberType?: string;
   hasIeeeAccount: boolean;
   ieeeAccountEmail?: string;
+  ieeeAccountPassword?: string;
   chapters: { chapterId: string; chapterName: string; price: number }[];
   ieeeMembershipFee: number;
   totalAmount: number;
@@ -19,7 +20,7 @@ interface AppWithUser {
   transactionId: string;
   status: "pending" | "approved" | "rejected";
   adminNotes?: string;
-  statusMessage?: string; // ADDED: Public message field
+  statusMessage?: string;
   submittedAt: string;
   user?: {
     fullName: string;
@@ -44,7 +45,7 @@ export default function AdminApplicationsPage() {
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<string>("pending");
   const [editNotes, setEditNotes] = useState("");
-  const [editStatusMessage, setEditStatusMessage] = useState(""); // ADDED: State for public message
+  const [editStatusMessage, setEditStatusMessage] = useState(""); 
 
   const fetchApps = useCallback(async () => {
     setLoading(true);
@@ -65,7 +66,7 @@ export default function AdminApplicationsPage() {
     setSelected(app);
     setEditStatus(app.status);
     setEditNotes(app.adminNotes ?? "");
-    setEditStatusMessage(app.statusMessage ?? ""); // ADDED: Populate public message
+    setEditStatusMessage(app.statusMessage ?? ""); 
   };
 
   const saveChanges = async () => {
@@ -75,7 +76,6 @@ export default function AdminApplicationsPage() {
       const res = await fetch(`/api/admin/applications/${selected._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        // ADDED: Include statusMessage in payload
         body: JSON.stringify({ 
           status: editStatus, 
           adminNotes: editNotes,
@@ -91,6 +91,13 @@ export default function AdminApplicationsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // ADDED: Reusable copy function
+  const handleCopy = (text: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
   };
 
   return (
@@ -202,19 +209,51 @@ export default function AdminApplicationsPage() {
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Student Information</p>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  {[
-                    { label: "Full Name", value: selected.user?.fullName ?? "—" },
-                    { label: "Email", value: selected.user?.email ?? "—" },
-                    { label: "Student ID", value: selected.user?.studentId ?? "—" },
-                    { label: "Department", value: selected.user?.department ?? "—" },
-                    { label: "Contact", value: selected.user?.contactNumber ?? "—" },
-                    { label: "IEEE Email", value: selected.user?.ieeeEmail ?? "—" },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-400 mb-1">{label}</p>
-                      <p className="font-medium text-gray-800 break-all">{value}</p>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">Full Name</p>
+                    <p className="font-medium text-gray-800">{selected.user?.fullName ?? "—"}</p>
+                  </div>
+                  
+                  {/* Copyable Email */}
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">Email</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-gray-800 truncate">{selected.user?.email ?? "—"}</p>
+                      {selected.user?.email && (
+                        <button onClick={() => handleCopy(selected.user!.email, "Email")} className="text-gray-400 hover:text-blue-600 transition-colors">
+                          <Copy size={14} />
+                        </button>
+                      )}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Copyable Student ID */}
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">Student ID</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-gray-800">{selected.user?.studentId ?? "—"}</p>
+                      {selected.user?.studentId && (
+                        <button onClick={() => handleCopy(selected.user!.studentId, "Student ID")} className="text-gray-400 hover:text-blue-600 transition-colors">
+                          <Copy size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">Department</p>
+                    <p className="font-medium text-gray-800">{selected.user?.department ?? "—"}</p>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">Contact</p>
+                    <p className="font-medium text-gray-800">{selected.user?.contactNumber ?? "—"}</p>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">IEEE Email</p>
+                    <p className="font-medium text-gray-800 truncate">{selected.user?.ieeeEmail ?? "—"}</p>
+                  </div>
                 </div>
                 {selected.user?.idCardUrl && (
                   <a href={selected.user.idCardUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary mt-3 inline-flex items-center gap-2 text-xs">
@@ -237,24 +276,55 @@ export default function AdminApplicationsPage() {
                       <p className="font-medium text-gray-800 capitalize">{selected.memberType.replace("_", " ")}</p>
                     </div>
                   )}
+                  
+                  {/* IEEE Account Status */}
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">IEEE Account Provided</p>
                     <p className="font-medium text-gray-800">{selected.hasIeeeAccount ? "Yes" : "No"}</p>
                   </div>
-                  {selected.ieeeAccountEmail && (
+
+                  {/* Copyable IEEE Account Email */}
+                  {selected.hasIeeeAccount && selected.ieeeAccountEmail && (
                     <div className="bg-gray-50 rounded-xl p-3">
                       <p className="text-xs text-gray-400 mb-1">IEEE Account Email</p>
-                      <p className="font-medium text-gray-800 break-all">{selected.ieeeAccountEmail}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium text-gray-800 truncate">{selected.ieeeAccountEmail}</p>
+                        <button onClick={() => handleCopy(selected.ieeeAccountEmail!, "IEEE Email")} className="text-gray-400 hover:text-blue-600 transition-colors">
+                          <Copy size={14} />
+                        </button>
+                      </div>
                     </div>
                   )}
+
+                  {/* Copyable IEEE Account Password */}
+                  {selected.hasIeeeAccount && selected.ieeeAccountPassword && (
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-1">IEEE Account Password</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium text-gray-800 font-mono truncate">{selected.ieeeAccountPassword}</p>
+                        <button onClick={() => handleCopy(selected.ieeeAccountPassword!, "Password")} className="text-gray-400 hover:text-blue-600 transition-colors">
+                          <Copy size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">Payment Method</p>
                     <p className="font-medium text-gray-800 capitalize">{selected.paymentMethod}</p>
                   </div>
+
+                  {/* Copyable Transaction ID */}
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">Transaction ID</p>
-                    <p className="font-medium text-gray-800 font-mono">{selected.transactionId}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-gray-800 font-mono truncate">{selected.transactionId}</p>
+                      <button onClick={() => handleCopy(selected.transactionId, "Transaction ID")} className="text-gray-400 hover:text-blue-600 transition-colors">
+                        <Copy size={14} />
+                      </button>
+                    </div>
                   </div>
+
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-xs text-gray-400 mb-1">Total Amount</p>
                     <p className="font-bold text-blue-700">{formatCurrency(selected.totalAmount)}</p>
@@ -296,7 +366,6 @@ export default function AdminApplicationsPage() {
                   </select>
                 </div>
 
-                {/* ADDED: Public Message Field */}
                 <div>
                   <label className="label flex items-center justify-between">
                     <span>Message to User</span>
@@ -312,7 +381,6 @@ export default function AdminApplicationsPage() {
                   <p className="text-[10px] text-gray-400 mt-1">This message will be visible to the student on their dashboard.</p>
                 </div>
 
-                {/* MODIFIED: Internal Notes Field */}
                 <div>
                   <label className="label flex items-center justify-between">
                     <span>Internal Admin Notes</span>
