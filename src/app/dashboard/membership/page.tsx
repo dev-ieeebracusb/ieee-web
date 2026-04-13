@@ -135,9 +135,9 @@ export default function MembershipPage() {
                   <th className="text-left text-xs font-semibold text-gray-500 pb-3">Status</th>
                 </tr>
               </thead>
-              <tbody key={123} className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50">
                 {applications.map((app) => (
-                  <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={app._id || app.id} className="hover:bg-gray-50 transition-colors">
                     <td className="py-3 font-medium text-gray-800 capitalize">{app.membershipType}</td>
                     <td className="py-3">
                       <div className="flex flex-wrap gap-1">

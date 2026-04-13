@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import connectDB from "@/lib/db";
 import { MembershipApplication } from "@/models/MembershipApplication";
-import { User } from "@/models/User";
+import { User } from "@/models/User"
 
 async function requireAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -35,14 +35,26 @@ export async function GET(req: NextRequest) {
       MembershipApplication.countDocuments(query),
     ]);
 
-    // Merge user info
+    // 1. Extract unique userIds (which are strings in your schema)
     const userIds = [...new Set(applications.map((a) => a.userId))];
-    const users = await User.find({ _id: { $in: userIds } }).lean();
-    const userMap = Object.fromEntries(users.map((u) => [(u as { _id: { toString(): string } })._id.toString(), u]));
 
+    // 2. Fetch users. Mongoose is smart enough to auto-cast your string IDs 
+    // to ObjectIds for the $in query under the hood.
+    const users = await User.find({ _id: { $in: userIds } }).lean();
+    
+
+
+    // 3. Build the map using .reduce for cleaner TypeScript, 
+    // explicitly converting the ObjectId _id to a string to match `userId`
+    const userMap = users.reduce((map, user: any) => {
+      map[user._id.toString()] = user;
+      return map;
+    }, {} as Record<string, any>); 
+
+    // 4. Merge them together
     const merged = applications.map((app) => ({
       ...app,
-      user: userMap[app.userId] ?? null,
+      user: userMap[app.userId] ?? null, 
     }));
 
     return NextResponse.json({ applications: merged, total, page, limit });

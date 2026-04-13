@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import connectDB from "@/lib/db";
 import { MembershipApplication } from "@/models/MembershipApplication";
+import { User } from "@/models/User";
 
 async function requireAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -56,10 +57,17 @@ export async function GET(
     await connectDB();
     const { id } = await params;
     const application = await MembershipApplication.findById(id).lean();
-    if (!application) {
+    const user = await User.findById(id).lean()
+    if (!application && user!) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    return NextResponse.json({ application });
+    const mergedData = {
+      ...user,
+      ...application,
+      mergedAt: new Date().toISOString(),
+    };
+    return NextResponse.json({ mergedData });
+    
   } catch (error) {
     console.error("Get application error:", error);
     return NextResponse.json({ error: "Failed" }, { status: 500 });

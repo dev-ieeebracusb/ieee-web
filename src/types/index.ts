@@ -1,5 +1,6 @@
 export interface UserProfile {
   id: string;
+  _id?: string;
   email: string;
   fullName: string;
   ieeeEmail?: string;
@@ -50,6 +51,7 @@ export interface MembershipConfig {
 
 export interface ApplicationSubmission {
   id: string;
+  _id?: string;
   userId: string;
   membershipType: "new" | "renew" | "extend";
   memberType?: "new_member" | "existing_member";

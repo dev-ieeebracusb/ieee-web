@@ -28,7 +28,10 @@ const UserSchema = new Schema<IUser>(
     role: { type: String, enum: ["student", "admin"], default: "student" },
     isApproved: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  {
+    collection: "user", 
+    timestamps: true,
+  }
 );
 
 export const User =
