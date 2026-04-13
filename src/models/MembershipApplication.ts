@@ -14,10 +14,10 @@ export interface IChapterSelection {
 export interface IMembershipApplication extends Document {
   userId: string;
   membershipType: MembershipType;
-  memberType?: MemberType; // for extend
+  memberType?: MemberType;
   hasIeeeAccount: boolean;
   ieeeAccountEmail?: string;
-  ieeeAccountPassword?: string; // stored hashed or encrypted in production
+  ieeeAccountPassword?: string; 
   chapters: IChapterSelection[];
   ieeeMembershipFee: number;
   totalAmount: number;
@@ -25,6 +25,7 @@ export interface IMembershipApplication extends Document {
   transactionId: string;
   status: ApplicationStatus;
   adminNotes?: string;
+  statusMessage?: string;
   submittedAt: Date;
   updatedAt: Date;
 }
@@ -61,6 +62,7 @@ const MembershipApplicationSchema = new Schema<IMembershipApplication>(
       default: "pending",
     },
     adminNotes: { type: String },
+    statusMessage: { type: String },
     submittedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -23,7 +23,7 @@ export async function PATCH(
     await connectDB();
     const { id } = await params;
     const body = await req.json();
-    const allowedFields = ["status", "adminNotes"];
+    const allowedFields = ["status", "adminNotes", "statusMessage"];
     const update: Record<string, unknown> = {};
     for (const key of allowedFields) {
       if (key in body) update[key] = body[key];

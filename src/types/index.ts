@@ -64,6 +64,7 @@ export interface ApplicationSubmission {
   transactionId: string;
   status: "pending" | "approved" | "rejected";
   adminNotes?: string;
+  statusMessage?: string;
   submittedAt: string;
   user?: UserProfile;
 }

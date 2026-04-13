@@ -19,6 +19,7 @@ interface AppWithUser {
   transactionId: string;
   status: "pending" | "approved" | "rejected";
   adminNotes?: string;
+  statusMessage?: string; // ADDED: Public message field
   submittedAt: string;
   user?: {
     fullName: string;
@@ -43,6 +44,7 @@ export default function AdminApplicationsPage() {
   const [saving, setSaving] = useState(false);
   const [editStatus, setEditStatus] = useState<string>("pending");
   const [editNotes, setEditNotes] = useState("");
+  const [editStatusMessage, setEditStatusMessage] = useState(""); // ADDED: State for public message
 
   const fetchApps = useCallback(async () => {
     setLoading(true);
@@ -63,6 +65,7 @@ export default function AdminApplicationsPage() {
     setSelected(app);
     setEditStatus(app.status);
     setEditNotes(app.adminNotes ?? "");
+    setEditStatusMessage(app.statusMessage ?? ""); // ADDED: Populate public message
   };
 
   const saveChanges = async () => {
@@ -72,7 +75,12 @@ export default function AdminApplicationsPage() {
       const res = await fetch(`/api/admin/applications/${selected._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: editStatus, adminNotes: editNotes }),
+        // ADDED: Include statusMessage in payload
+        body: JSON.stringify({ 
+          status: editStatus, 
+          adminNotes: editNotes,
+          statusMessage: editStatusMessage 
+        }),
       });
       if (!res.ok) throw new Error();
       toast.success("Application updated successfully");
@@ -184,7 +192,7 @@ export default function AdminApplicationsPage() {
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
               <h3 className="font-bold text-gray-900">Application Review</h3>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
             </div>
@@ -288,18 +296,39 @@ export default function AdminApplicationsPage() {
                   </select>
                 </div>
 
+                {/* ADDED: Public Message Field */}
                 <div>
-                  <label className="label">Admin Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className="label flex items-center justify-between">
+                    <span>Message to User</span>
+                    <span className="text-xs font-normal text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md">Public</span>
+                  </label>
+                  <textarea
+                    value={editStatusMessage}
+                    onChange={(e) => setEditStatusMessage(e.target.value)}
+                    className="input resize-none focus:border-blue-300 focus:ring-blue-100"
+                    rows={2}
+                    placeholder="e.g., Invalid transaction ID, please verify and contact support."
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">This message will be visible to the student on their dashboard.</p>
+                </div>
+
+                {/* MODIFIED: Internal Notes Field */}
+                <div>
+                  <label className="label flex items-center justify-between">
+                    <span>Internal Admin Notes</span>
+                    <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">Private</span>
+                  </label>
                   <textarea
                     value={editNotes}
                     onChange={(e) => setEditNotes(e.target.value)}
-                    className="input resize-none"
-                    rows={3}
-                    placeholder="Add notes for this application..."
+                    className="input resize-none focus:border-gray-300 focus:ring-gray-100"
+                    rows={2}
+                    placeholder="Private notes for other admins..."
                   />
+                  <p className="text-[10px] text-gray-400 mt-1">These notes are strictly internal and cannot be seen by the student.</p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-2">
                   <button onClick={() => setSelected(null)} className="btn-secondary flex-1">Cancel</button>
                   <button onClick={saveChanges} disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">
                     {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

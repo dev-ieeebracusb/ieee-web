@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ApplicationSubmission } from "@/types";
-import { Plus, RefreshCw, ChevronRight, CreditCard } from "lucide-react";
+import { Plus, RefreshCw, ChevronRight, CreditCard, MessageSquare, X } from "lucide-react";
 import MembershipModal from "@/components/membership/MembershipModal";
 import config from "@/lib/membership-config.json";
 
@@ -15,6 +15,9 @@ export default function MembershipPage() {
   const [applications, setApplications] = useState<ApplicationSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalAction, setModalAction] = useState<ModalAction>(null);
+  
+  // ADDED: State to manage the currently selected application for viewing messages
+  const [messageApp, setMessageApp] = useState<ApplicationSubmission | null>(null);
 
   const fetchApplications = useCallback(async () => {
     setLoading(true);
@@ -133,6 +136,8 @@ export default function MembershipPage() {
                   <th className="text-left text-xs font-semibold text-gray-500 pb-3">Payment</th>
                   <th className="text-left text-xs font-semibold text-gray-500 pb-3">Date</th>
                   <th className="text-left text-xs font-semibold text-gray-500 pb-3">Status</th>
+                  {/* ADDED: Message Column Header */}
+                  <th className="text-left text-xs font-semibold text-gray-500 pb-3">Message</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -160,6 +165,20 @@ export default function MembershipPage() {
                         {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
                       </span>
                     </td>
+                    {/* ADDED: Message Button Cell */}
+                    <td className="py-3">
+                      {app.statusMessage ? (
+                        <button
+                          onClick={() => setMessageApp(app)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
+                        >
+                          <MessageSquare size={12} />
+                          View
+                        </button>
+                      ) : (
+                        <span className="text-gray-300 pl-4">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -178,6 +197,49 @@ export default function MembershipPage() {
             fetchApplications();
           }}
         />
+      )}
+
+      {/* ADDED: Status Message Modal */}
+      {messageApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <MessageSquare size={16} className="text-blue-500" />
+                Message from Admin
+              </h3>
+              <button 
+                onClick={() => setMessageApp(null)} 
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-xs text-gray-500">Application Status:</span>
+                <span className={
+                  messageApp.status === "approved" ? "badge-approved" :
+                  messageApp.status === "rejected" ? "badge-rejected" :
+                  "badge-pending"
+                }>
+                  {messageApp.status.charAt(0).toUpperCase() + messageApp.status.slice(1)}
+                </span>
+              </div>
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                {messageApp.statusMessage}
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={() => setMessageApp(null)} 
+                className="btn-secondary text-xs px-4 py-2"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
